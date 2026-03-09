@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import RefreshToken from "../models/refresh_token.model.js";
 import {
   ACCESS_TOKEN_EXPIRE_DATE,
   ACCESS_TOKEN_PRIVATE_KEY,
@@ -9,7 +10,7 @@ import {
   REFRESH_TOKEN_PRIVATE_KEY,
   REFRESH_TOKEN_PUBLIC_KEY,
 } from "../config/env.js";
-import RefreshToken from "../models/refresh_token.model.js";
+
 export const signUp = async (req, res, next) => {
   try {
     const { full_name, email, password } = req.body;
@@ -194,6 +195,28 @@ export const refreshToken = async (req, res, next) => {
     res.status(201).json({success:true,data:{
       access_token
     }})
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const logout = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+    
+    if(refreshToken){
+      const hashed_refresh_token = crypto.createHash("sha256").update(refreshToken).digest("hex");
+      await RefreshToken.findOneAndDelete({refresh_token:hashed_refresh_token})
+
+      res.clearCookie("access_token");
+      res.clearCookie("refresh_token");
+  
+      res.status(200).json({
+        success: true,
+        message: "Logout successful"
+      });
+    }
   } catch (err) {
     next(err);
   }
